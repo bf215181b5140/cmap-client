@@ -15,7 +15,7 @@ import { app } from 'electron';
 //                               '/avatar/parameters/GestureLeftWeight', '/avatar/parameters/GestureLeft', '/avatar/parameters/Voice',
 //                               '/avatar/parameters/Viseme', '/avatar/parameters/VelocityMagnitude'];
 
-export class TrackedParametersService extends Map<VrcParameter['path'], TrackedParameter> {
+export class TrackedParametersService extends Map<string, TrackedParameter> {
   private clearOnAvatarChange = SETTINGS.get('trackedParameters').clearOnAvatarChange;
   private detectedAvatarId: string | undefined;
   private avatarChangePath = '/avatar/change';
@@ -33,6 +33,12 @@ export class TrackedParametersService extends Map<VrcParameter['path'], TrackedP
   private resetFrequencyIntervalMs = 2000; // How often do we reset/reduce frequency values
   private bufferFrequencyLimit = Math.floor(this.resetFrequencyIntervalMs / 300); // anything more than once per 400ms gets buffered
   private bufferTimeMs = 1000;
+
+  private batchTimeMs = 10000;
+  private batchPointsLimit = 100;
+  private batchPoints = 0;
+  private batchingActive: boolean = false;
+  private batchedTrackedParameters = new Map<string, TrackedParameter>();
 
   constructor() {
     super();
@@ -69,8 +75,14 @@ export class TrackedParametersService extends Map<VrcParameter['path'], TrackedP
     IPC.handle('trackedParameters:getIgnoredParameters', async () => Array.from(this.ignoredParameters.values()));
     IPC.handle('trackedParameters:getTrackedParameters', async () => Array.from(this.entries()));
     IPC.handle('trackedParameters:getBufferFrequencyLimit', async () => this.bufferFrequencyLimit);
+    IPC.handle('trackedParameters:getBatchingActive', async () => this.batchPoints >= this.batchPointsLimit);
 
+    // tracked parameter buffering reset interval
     setInterval(() => this.resetFrequencies(), this.resetFrequencyIntervalMs);
+
+    // batching reset points interval
+    // Every 1/5 of batch time we reduce points by 1/5
+    setInterval(() => this.batchPoints = Math.max(0, this.batchPoints - (this.batchPointsLimit / 5)), this.batchTimeMs / 5);
   }
 
   /**
@@ -92,14 +104,14 @@ export class TrackedParametersService extends Map<VrcParameter['path'], TrackedP
       if (this.clearOnAvatarChange) this.clearParametersAfterAvatarChange();
     }
 
-    this.bufferAndEmitTrackedParameter(vrcParameter.path, trackedParameter);
+    this.bufferTrackedParameter(vrcParameter.path, trackedParameter);
   }
 
   /**
    * Handle tracked parameter buffering and emit them when they're ready
    *
    */
-  bufferAndEmitTrackedParameter(path: string, trackedParameter: TrackedParameter) {
+  bufferTrackedParameter(path: string, trackedParameter: TrackedParameter) {
     // if it's already buffered return
     if (trackedParameter.buffered) return;
 
@@ -107,15 +119,51 @@ export class TrackedParametersService extends Map<VrcParameter['path'], TrackedP
     if (trackedParameter.frequency > this.bufferFrequencyLimit) {
       trackedParameter.setBuffered(true);
       setTimeout(() => {
-        // send out value as it will be after timeout and unbuffer parameter
-        BRIDGE.emit('trackedParameters:vrcParameter', { path: path, value: trackedParameter.value });
+        // emit and forward to batching for socket, as it will be after timeout and un-buffer parameter
+        this.batchTrackedParameter(path, trackedParameter);
         IPC.emit('trackedParameters:trackedParameter', [path, trackedParameter]);
         trackedParameter.setBuffered(false);
       }, this.bufferTimeMs);
     } else {
-      // emit parameter without buffering
-      BRIDGE.emit('trackedParameters:vrcParameter', { path: path, value: trackedParameter.value });
+      // emit and forward to batching for socket, without buffering
+      this.batchTrackedParameter(path, trackedParameter);
       IPC.emit('trackedParameters:trackedParameter', [path, trackedParameter]);
+    }
+  }
+
+  /**
+   * Handle tracked parameter batching for socket
+   *
+   * Here we only emit events for socket, internally for the app we should have already emitted trackedParameters
+   *
+   */
+  batchTrackedParameter(path: string, trackedParameter: TrackedParameter) {
+    // if we're already batching then add it to the map and return
+    if (this.batchingActive) {
+      this.batchedTrackedParameters.set(path, trackedParameter);
+      // we still add points a bit over the limit, this will smooth out batching to be continuous if it's always active
+      // otherwise it will batch once then spam until limit etc
+      if (this.batchPoints < this.batchPointsLimit * 1.5) this.batchPoints++;
+      return;
+    }
+
+    // add point
+    this.batchPoints++;
+
+    if (this.batchPoints >= this.batchPointsLimit) {
+      // if we hit batch points limit, then start batching
+      this.batchingActive = true;
+      this.batchedTrackedParameters.set(path, trackedParameter);
+
+      // send out batched items and clear the batch
+      setTimeout(() => {
+        BRIDGE.emit('socket:sendVrcParameters', [...this.batchedTrackedParameters.entries()].map(p => ({ path: p[0], value: p[1].value })));
+        this.batchedTrackedParameters.clear();
+        this.batchingActive = false;
+      }, 500);
+    } else {
+      // if batching is not required just parameter right away to socket
+      BRIDGE.emit('socket:sendVrcParameter', { path: path, value: trackedParameter.value });
     }
   }
 
@@ -210,7 +258,7 @@ export class TrackedParametersService extends Map<VrcParameter['path'], TrackedP
 
       // emit new tracked parameters
       const vrcParameters = this.toVrcParameterList();
-      BRIDGE.emit('trackedParameters:vrcParameters', vrcParameters);
+      BRIDGE.emit('socket:sendAllVrcParameters', vrcParameters);
       IPC.emit('trackedParameters:trackedParameters', Array.from(this.entries()));
 
     }, waitTime);

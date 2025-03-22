@@ -12,6 +12,7 @@ export type IpcGetOptions = {
   'trackedParameters:getIgnoredParameters': string[];
   'trackedParameters:getTrackedParameters': [string, TrackedParameter][];
   'trackedParameters:getBufferFrequencyLimit': number;
+  'trackedParameters:getBatchingActive': boolean;
   'utility:fingerprint': string;
   // these stores should get reworked wihtout IPC calls
   getAvatars: VrcOscAvatar[];
@@ -37,8 +38,6 @@ export type IpcSendOptions = {
 export type IpcReceiveOptions = {
   'window:size': WindowSize;
   'osc:vrcParameter': VrcParameter;
-  'trackedParameters:vrcParameter': VrcParameter;
-  'trackedParameters:vrcParameters': VrcParameter[];
   'trackedParameters:trackedParameter': [string, TrackedParameter];
   'trackedParameters:trackedParameters': [string, TrackedParameter][];
   'socket:connection': boolean;

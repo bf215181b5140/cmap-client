@@ -12,6 +12,7 @@ export default function TrackedParameters() {
   const { addNotification } = useNotifications();
   const [trackedParameters, setTrackedParameters] = useState<Map<string, TrackedParameter>>(new Map());
   const [bufferFrequencyLimit, setSufferFrequencyLimit] = useState<number | undefined>();
+  const [batchingActive, setBatchingActive] = useState<boolean>(false);
   const [parameterBlacklist, setParameterBlacklist] = useState<Set<string>>(new Set());
   const trackedAvatarId = trackedParameters.get('/avatar/change')?.value?.toString();
 
@@ -20,6 +21,7 @@ export default function TrackedParameters() {
       window.IPC.get('trackedParameters:getTrackedParameters').then(data => {
         setTrackedParameters(new Map(data));
       });
+      window.IPC.get('trackedParameters:getBatchingActive').then(data => setBatchingActive(data));
     }
 
     getTrackedParameters();
@@ -30,15 +32,20 @@ export default function TrackedParameters() {
 
     const intervalId = setInterval(getTrackedParameters, 1500);
 
-    const removeListener = window.IPC.receive('trackedParameters:trackedParameter', (data) => {
+    const trackedParameterListener = window.IPC.receive('trackedParameters:trackedParameter', (data) => {
       setTrackedParameters(state => new Map(state.set(data[0], data[1])));
+    });
+
+    const trackedParametersListener = window.IPC.receive('trackedParameters:trackedParameters', (data) => {
+      setTrackedParameters(new Map(data));
     });
 
     const settingsListener = window.IPC.receive('store:trackedParametersSettings', (data) => setParameterBlacklist(new Set(data.blacklist)));
 
     return () => {
       clearInterval(intervalId);
-      if (removeListener) removeListener();
+      if (trackedParameterListener) trackedParameterListener();
+      if (trackedParametersListener) trackedParametersListener();
       if (settingsListener) settingsListener();
     };
   }, []);
@@ -74,7 +81,10 @@ export default function TrackedParameters() {
 
   return (<Segment width={'Full'} segmentTitle={'Parameters'} infoContent={segmentInfo}>
 
-    <AvatarName avatarId={trackedAvatarId} />
+    <AvatarAndBatching>
+      <AvatarName avatarId={trackedAvatarId} />
+      {batchingActive && <div className={'batchingMessage'}>Batching <i className={'ri-spam-2-line'} /></div>}
+    </AvatarAndBatching>
 
     <SegmentTable>
       <thead>
@@ -136,7 +146,29 @@ const segmentInfo = <>
     <br />
     <b>Buffering</b> means that the parameter wont be forwarded to the website right away, but will instead be sent out every ~1 second.
   </p>
+  <p>
+    <b>Batching</b> notification will be displayed if too many different parameters are still being send out.
+    Parameters will automatically be grouped together and sent to the server in batches.
+    This means there will be an additional slight delay before parameter changes are reflected on the website (0.5 seconds currently)
+  </p>
 </>;
+
+const AvatarAndBatching = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 15px;
+
+  .batchingMessage {
+    font-size: 18px;
+    margin: 10px;
+    color: ${theme.colors.warning};
+
+    i {
+      font-size: 22px;
+    }
+  }
+`;
 
 const CopyValue = styled.span`
   cursor: pointer;
