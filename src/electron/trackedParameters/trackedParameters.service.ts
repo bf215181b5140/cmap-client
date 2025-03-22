@@ -38,6 +38,7 @@ export class TrackedParametersService extends Map<string, TrackedParameter> {
   private batchPointsLimit = 100;
   private batchPoints = 0;
   private batchingActive: boolean = false;
+  private batchTimeoutId: NodeJS.Timeout | undefined;
   private batchedTrackedParameters = new Map<string, TrackedParameter>();
 
   constructor() {
@@ -156,7 +157,7 @@ export class TrackedParametersService extends Map<string, TrackedParameter> {
       this.batchedTrackedParameters.set(path, trackedParameter);
 
       // send out batched items and clear the batch
-      setTimeout(() => {
+      this.batchTimeoutId = setTimeout(() => {
         BRIDGE.emit('socket:sendVrcParameters', [...this.batchedTrackedParameters.entries()].map(p => ({ path: p[0], value: p[1].value })));
         this.batchedTrackedParameters.clear();
         this.batchingActive = false;
@@ -255,6 +256,13 @@ export class TrackedParametersService extends Map<string, TrackedParameter> {
           tp.avatarId = this.detectedAvatarId;
         }
       });
+
+      // clear any ongoing batching timeout, so it doesn't override what we'll filter here
+      if (this.batchTimeoutId) {
+        clearTimeout(this.batchTimeoutId);
+        this.batchedTrackedParameters.clear();
+        this.batchingActive = false;
+      }
 
       // emit new tracked parameters
       const vrcParameters = this.toVrcParameterList();
