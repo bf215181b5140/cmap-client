@@ -1,7 +1,7 @@
 import { VrcParameter } from 'cmap-shared/src/objects/vrcParameter';
 
 export interface TrackedParameterDTO {
-  path: VrcParameter['path'];
+  path: string;
   value: VrcParameter['value'];
   frequency: number;
   lastActivity: number;

@@ -27,8 +27,9 @@ export class SocketController {
     IPC.handle('socket:connection', async () => !!this.socket?.connected);
 
     BRIDGE.on('gameDetector:detectedGames', data => this.socket?.emit('detectedGames', data));
-    BRIDGE.on('trackedParameters:vrcParameter', vrcParameter => this.socket?.emit('parameter', vrcParameter));
-    BRIDGE.on('trackedParameters:vrcParameters', vrcParameters => this.socket?.emit('parameters', vrcParameters));
+    BRIDGE.on('socket:sendVrcParameter', vrcParameter => this.socket?.emit('vrcParameter', vrcParameter));
+    BRIDGE.on('socket:sendVrcParameters', vrcParameters => this.socket?.emit('vrcParameters', vrcParameters));
+    BRIDGE.on('socket:sendAllVrcParameters', vrcParameters => this.socket?.emit('allVrcParameters', vrcParameters));
 
     if (this.settings.autoConnect) this.connect();
   }
@@ -52,7 +53,7 @@ export class SocketController {
       BRIDGE.emit('socket:applyParameters', (parameters: VrcParameter[]) => this.socket?.emit('parameters', parameters));
     });
 
-    this.socket.on('parameters', (callback: (parameters: VrcParameter[]) => void) => {
+    this.socket.on('getAllVrcParameters', (callback: (parameters: VrcParameter[]) => void) => {
       BRIDGE.emit('socket:applyParameters', callback);
     });
 

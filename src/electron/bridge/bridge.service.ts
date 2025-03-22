@@ -10,8 +10,9 @@ type MessageEvents = {
   'window:size': (windowSize: WindowSize) => void;
   'osc:sendMessage': (oscMessage: Message) => void;
   'osc:vrcParameter': (vrcParameter: VrcParameter) => void;
-  'trackedParameters:vrcParameter': (vrcParameter: VrcParameter) => void;
-  'trackedParameters:vrcParameters': (vrcParameters: VrcParameter[]) => void;
+  'socket:sendVrcParameter': (vrcParameter: VrcParameter) => void;
+  'socket:sendVrcParameters': (vrcParameters: VrcParameter[]) => void;
+  'socket:sendAllVrcParameters': (vrcParameters: VrcParameter[]) => void;
   'socket:applyParameters': (callback: (parameters: VrcParameter[]) => void) => void;
   'socket:usedParameterButton': (usedParameterButton: UsedParameterButtonDTO) => void;
   'socket:usedPresetButton': (usedPresetButton: UsedPresetButtonDTO) => void;
