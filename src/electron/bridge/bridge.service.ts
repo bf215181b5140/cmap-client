@@ -4,6 +4,7 @@ import type { WindowSize } from '../../shared/enums/windowSize';
 import { DetectedGamesDTO, UsedAvatarButtonDTO, UsedParameterButtonDTO, UsedPresetButtonDTO, VrcParameter } from 'cmap-shared';
 import { Message } from 'node-osc';
 import type { WindowState } from '../../shared/enums/windowState';
+import { UsedCustomPresetDTO } from 'cmap-shared/dist/objects/usedCustomPreset';
 
 type MessageEvents = {
   'window:state': (windowState: WindowState) => void;
@@ -16,6 +17,7 @@ type MessageEvents = {
   'socket:applyParameters': (callback: (parameters: VrcParameter[]) => void) => void;
   'socket:usedParameterButton': (usedParameterButton: UsedParameterButtonDTO) => void;
   'socket:usedPresetButton': (usedPresetButton: UsedPresetButtonDTO) => void;
+  'socket:usedCustomPreset': (usedCustomPreset: UsedCustomPresetDTO) => void;
   'socket:usedAvatarButton': (usedAvatarButton: UsedAvatarButtonDTO) => void;
   'gameDetector:detectedGames': (isGameDetected: DetectedGamesDTO) => void;
 }

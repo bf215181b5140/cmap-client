@@ -5,6 +5,7 @@ import { BRIDGE } from '../bridge/bridge.service';
 import { IPC } from '../ipc/typedIpc.service';
 import { SETTINGS } from '../store/settings/settings.store';
 import log from 'electron-log';
+import { UsedCustomPresetDTO } from 'cmap-shared/dist/objects/usedCustomPreset';
 
 export class SocketController {
   private socket: Socket | undefined;
@@ -73,6 +74,10 @@ export class SocketController {
 
     this.socket.on('usedPresetButton', (usedPresetButton: UsedPresetButtonDTO) => {
       BRIDGE.emit('socket:usedPresetButton', usedPresetButton);
+    });
+
+    this.socket.on('usedCustomPreset', (usedCustomPreset: UsedCustomPresetDTO) => {
+      BRIDGE.emit('socket:usedCustomPreset', usedCustomPreset);
     });
 
     this.socket.on('usedAvatarButton', (usedAvatarButton: UsedAvatarButtonDTO) => {

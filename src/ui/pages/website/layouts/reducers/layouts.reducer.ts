@@ -20,6 +20,7 @@ export type LayoutsReducerAction = { type: 'setLayouts', layouts: LayoutDTO[] } 
   { type: 'editPresetButton', layoutId: string, presetButton: PresetButtonDTO } |
   { type: 'removePresetButton', layoutId: string, presetButtonId: string } |
   { type: 'setPresetButtonOrder', layoutId: string, presetButtons: PresetButtonDTO[] } |
+  { type: 'saveCustomPresets', layout: LayoutDTO } |
   { type: 'changeParameterButtonPicture', layoutId: string, groupId: string, parameterButtonId: string, image: UploadedFileDTO | null } |
   { type: 'changePresetButtonPicture', layoutId: string, presetButtonId: string, image: UploadedFileDTO | null };
 
@@ -181,6 +182,18 @@ export default function layoutsReducer(state: LayoutDTO[], action: LayoutsReduce
             }
             return group;
           });
+        }
+        return layout;
+      });
+    case 'saveCustomPresets':
+      return state.map(layout => {
+        if (layout.id === action.layout.id) {
+          return {
+            ...layout,
+            customPresetsEnabled: action.layout.customPresetsEnabled,
+            customPresetsWhitelist: action.layout.customPresetsWhitelist,
+            customPresetsBlacklist: action.layout.customPresetsBlacklist,
+          };
         }
         return layout;
       });

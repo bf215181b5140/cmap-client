@@ -8,6 +8,7 @@ import Avatars from './avatars/avatars.component';
 import Parameters from './parameters/parameters.component';
 import LayoutHeader from './header/layoutHeader.component';
 import { Page } from '../../../../components/page/page.component';
+import CustomPresets from './customPresets/customPresets.component';
 
 export default function LayoutPage() {
 
@@ -40,6 +41,11 @@ export default function LayoutPage() {
         Presets
       </LayoutMenuLinkStyled>}
 
+      {<LayoutMenuLinkStyled onClick={() => setLayoutSection('customPresets')} aria-current={layoutSection === 'customPresets'} aria-disabled={!layout}>
+        <i className={'ri-pen-nib-fill'} />
+        Custom presets
+      </LayoutMenuLinkStyled>}
+
       <LayoutMenuLinkStyled onClick={() => setLayoutSection('avatars')} aria-current={layoutSection === 'avatars'}>
         <i className={'ri-group-line'} />
         Avatars
@@ -54,6 +60,7 @@ export default function LayoutPage() {
 
     {(layoutSection === 'parameters' && layout) && <Parameters layout={layout} />}
     {(layoutSection === 'presets' && layout) && <Presets layout={layout} />}
+    {(layoutSection === 'customPresets' && layout) && <CustomPresets layout={layout} />}
     {layoutSection === 'avatars' && <Avatars />}
     {layoutSection === 'interactionKeys' && <InteractionKeys />}
 

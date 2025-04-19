@@ -3,7 +3,7 @@ import { AvatarButtonDTO, BackgroundDTO, InteractionKeyDTO, LayoutDTO, ThemeDTO,
 import { LayoutsReducerAction } from './reducers/layouts.reducer';
 import { AvatarButtonsReducerAction } from './reducers/avatarButtons.reducer';
 
-export type LayoutSections = 'parameters' | 'presets' | 'avatars' | 'interactionKeys';
+export type LayoutSections = 'parameters' | 'presets' | 'customPresets' | 'avatars' | 'interactionKeys';
 
 export interface LayoutsPageData {
   layoutSection: LayoutSections | undefined;

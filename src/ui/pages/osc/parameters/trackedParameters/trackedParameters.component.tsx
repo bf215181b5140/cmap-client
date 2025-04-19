@@ -71,7 +71,6 @@ export default function TrackedParameters() {
   }
 
   function addToBlacklist(path: string) {
-    console.log('adding to blacklist', path);
     window.IPC.send('store:addParameterToBlacklist', path);
   }
 

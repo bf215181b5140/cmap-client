@@ -7,6 +7,7 @@ import { Message } from 'node-osc';
 import { UsedAvatarButtonDTO, UsedParameterButtonDTO, UsedPresetButtonDTO } from 'cmap-shared';
 import { TRACKED_PARAMETERS_STORE } from '../store/trackedParameters/trackedParameters.store';
 import { app } from 'electron';
+import { UsedCustomPresetDTO } from 'cmap-shared/dist/objects/usedCustomPreset';
 
 // const ignoredOscParameters = ['/avatar/parameters/VelocityZ', '/avatar/parameters/VelocityY', '/avatar/parameters/VelocityX',
 //                               '/avatar/parameters/InStation', '/avatar/parameters/Seated', '/avatar/parameters/Upright',
@@ -71,6 +72,7 @@ export class TrackedParametersService extends Map<string, TrackedParameter> {
     BRIDGE.on('socket:applyParameters', callback => callback(this.toVrcParameterList()));
     BRIDGE.on('socket:usedParameterButton', usedParameterButton => this.onUsedParameterButton(usedParameterButton));
     BRIDGE.on('socket:usedPresetButton', usedPresetButton => this.onUsedPresetButton(usedPresetButton));
+    BRIDGE.on('socket:usedCustomPreset', usedCustomPreset => this.onUsedCustomPreset(usedCustomPreset));
     BRIDGE.on('socket:usedAvatarButton', usedAvatarButton => this.onUsedAvatarButton(usedAvatarButton));
 
     IPC.handle('trackedParameters:getIgnoredParameters', async () => Array.from(this.ignoredParameters.values()));
@@ -205,6 +207,23 @@ export class TrackedParametersService extends Map<string, TrackedParameter> {
 
     usedPresetButton.callbackParameters.forEach(cp => {
       setTimeout(() => BRIDGE.emit('osc:sendMessage', new Message(cp.path, cp.value)), 1000 * cp.seconds);
+    });
+  }
+
+  /**
+   * usedCustomPreset is received from server when someone sends a custom preset
+   *
+   * Check if preset can be used, based on included avatar IDs
+   *
+   * Emit parameters to vrchat
+   *
+   */
+  private onUsedCustomPreset(usedCustomPreset: UsedCustomPresetDTO) {
+    const canSend = this.detectedAvatarId && usedCustomPreset.avatarIds.includes(this.detectedAvatarId);
+    if (!canSend) return;
+
+    usedCustomPreset.parameters.forEach(p => {
+      BRIDGE.emit('osc:sendMessage', new Message(p.path, p.value));
     });
   }
 
